@@ -11,6 +11,7 @@ getexcelfromfile <- function() {
   file = file.choose(new = FALSE)
   res <- read.xlsx(file, 1)
   # add new columns
+  res$date <- 0
   res$aggcases <- 0
   res$aggdeaths <- 0
   res$region <- "na"
@@ -21,14 +22,14 @@ getexcelfromfile <- function() {
 getexcelfromurl <- function() {
   #create the URL where the dataset is stored with automatic updates every day
   url <- paste("https://www.ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-",format(Sys.time(), "%Y-%m-%d"), ".xlsx", sep = "")
-  
+ 
   #download the dataset from the website to a local temporary file
-  GET(url, authenticate(":", ":", type="ntlm"), write_disk(tf <- "temp.xlsx"))
-  
-  #read the Dataset sheet into “R”
-  res <- read_excel(tf)
-  
+  GET(url, authenticate(":", ":", type="ntlm"), write_disk(tf <- tempfile(fileext = ".xlsx")))
+  #res <- read_excel(tf)  #read the Dataset sheet into “R”
+  res <- read.xlsx(tf, 1)
+
   # add new columns
+  res$date <- 0
   res$aggcases <- 0
   res$aggdeaths <- 0
   res$region <- "na"
@@ -55,6 +56,7 @@ sumcountry <- function(name) {
     #print(paste("date: ", date, " cases: ", cases, " deaths: ", deaths))
     sumcases <- sumcases + cases
     sumdeaths <- sumdeaths + deaths
+    scdata[row, "date"] <- as.character(date, format="%Y%m%d")
     scdata[row, "region"] <- regiontext
     scdata[row, "aggcases"] <- sumcases
     scdata[row, "aggdeaths"] <- sumdeaths
@@ -66,20 +68,29 @@ sumcountry <- function(name) {
 
 # Select columns relevant for Gapminder
 trimdata <- function(df) {
-  #trimmed <- within(df, rm('Day, Month, Year, GeoId))
-  res <- subset(df, select=c('Countries.and.territories', 'DateRep', 'aggcases', 'aggdeaths', 'Cases', 'Deaths', 'region'))
-  return(res)
+  return(subset(df, select=c('Countries.and.territories', 'date', 'aggcases', 'aggdeaths', 
+                             'Cases', 'Deaths', 'region')))
+}
+
+
+# CLEAN UP #################################################
+cleanup <- function() {
+  # Clear environment
+  rm(list = ls())
+  
+  # Clear console
+  cat("\014")  # ctrl+L
 }
 
 #
 # #
 #
 
-#res <- getexcelfromurl()
-res <- getexcelfromfile()
+res <- getexcelfromurl()
+#res <- getexcelfromfile()
 
-# read the region database xlsx
-regres <- read.xlsx("names.xlsx", 1)
+#str read the region database xlsx
+regres <- read.xlsx("region_names.xlsx", 1)
 
 #Get list of countries from data frame
 countries <- unique(res %>% select(Countries.and.territories))
@@ -88,35 +99,19 @@ countries <- unique(res %>% select(Countries.and.territories))
 #country_file = file.choose(new = TRUE)
 #write.xlsx(countries, country_file, sheetName="countries")
 
-total <- sumcountry("Guernsey")
-tail(total)
+total <- data.frame(DateRep=integer(), Day=integer(), Month=integer(), Year=integer(),
+                 Cases=integer(), Deaths=integer(), Countries.and.territories=factor(),
+                 GeoId=factor(), date=integer(), aggcases=integer(),
+                 aggdeaths=integer(), region=character(), stringsAsFactors=FALSE)
 
 # Loop through countries
 for (row in 1:nrow(countries)) {
-  country <- countries[row, "Countries.and.territories"]
-  tmp <- sumcountry(country)
-  total = rbind(total, tmp)
+  total = rbind(total, sumcountry(countries[row, "Countries.and.territories"]))
 }
 
 final <- trimdata(total)
 
 # write data to exel, for gapminder
-write.xlsx(final, "gap2.xlsx", sheetName="countries")
+write.xlsx(final, "gapminder.xlsx", sheetName="countries", row.names=FALSE)
 
-
-# CLEAN UP #################################################
-
-# Clear environment
-rm(list = ls())
-
-# Clear packages
-p_unload(all)  # Remove all add-ons
-detach("package:datasets", unload = TRUE)  # For base
-
-# Clear plots
-dev.off()  # But only if there IS a plot
-
-# Clear console
-cat("\014")  # ctrl+L
-
-# Clear mind :)
+cleanup()
