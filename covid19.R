@@ -3,7 +3,7 @@
 if (!require("pacman")) install.packages("pacman")
 
 # Use pacman to load add-on packages as desired
-pacman::p_load(pacman, rJava, xlsx, httr, dplyr, readxl)
+pacman::p_load(pacman, rJava, xlsx, httr, dplyr)
 
 
 # Read the covid excel sheet from file
@@ -24,10 +24,14 @@ getexcelfromurl <- function() {
   url <- paste("https://www.ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-",format(Sys.time(), "%Y-%m-%d"), ".xlsx", sep = "")
  
   #download the dataset from the website to a local temporary file
-  GET(url, authenticate(":", ":", type="ntlm"), write_disk(tf <- tempfile(fileext = ".xlsx")))
-  #res <- read_excel(tf)  #read the Dataset sheet into “R”
-  res <- read.xlsx(tf, 1)
+  GET(url, authenticate(":", ":", type="ntlm"), write_disk(tempfile <- tempfile(fileext = ".xlsx")))
+  if (file.info(tempfile)$size < 50000) {
+    print("EXCEL file not available, try again later.")
+    return(0)
+  }
 
+  #read the Dataset sheet into R
+  res <- read.xlsx(tempfile, 1)
   # add new columns
   res$date <- 0
   res$aggcases <- 0
@@ -61,7 +65,6 @@ sumcountry <- function(name) {
     scdata[row, "aggcases"] <- sumcases
     scdata[row, "aggdeaths"] <- sumdeaths
   } # end loop dates
-  #print(paste("added ", nrow(scdata), " rows"))
   return (scdata)
 }
 
@@ -86,8 +89,9 @@ cleanup <- function() {
 # #
 #
 
+#readline(prompt="Loaded functions. Press [enter] to continue")
+
 res <- getexcelfromurl()
-#res <- getexcelfromfile()
 
 #str read the region database xlsx
 regres <- read.xlsx("region_names.xlsx", 1)
