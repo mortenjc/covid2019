@@ -26,8 +26,7 @@ getexcelfromurl <- function() {
   #download the dataset from the website to a local temporary file
   GET(url, authenticate(":", ":", type="ntlm"), write_disk(tempfile <- tempfile(fileext = ".xlsx")))
   if (file.info(tempfile)$size < 50000) {
-    print("EXCEL file not available, try again later.")
-    return(0)
+    stop("EXCEL file not available, try again later.")
   }
 
   #read the Dataset sheet into R
@@ -92,6 +91,7 @@ cleanup <- function() {
 #readline(prompt="Loaded functions. Press [enter] to continue")
 
 res <- getexcelfromurl()
+
 
 #str read the region database xlsx
 regres <- read.xlsx("region_names.xlsx", 1)
