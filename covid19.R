@@ -3,7 +3,7 @@
 if (!require("pacman")) install.packages("pacman")
 
 # Use pacman to load add-on packages as desired
-pacman::p_load(pacman, rJava, xlsx, httr, dplyr)
+pacman::p_load(pacman, rJava, xlsx, httr, dplyr, ggplot2, REAT)
 
 
 # Read the covid excel sheet from file
@@ -22,7 +22,6 @@ getexcelfromfile <- function() {
 getexcelfromurl <- function() {
   #create the URL where the dataset is stored with automatic updates every day
   url <- paste("https://www.ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-",format(Sys.time(), "%Y-%m-%d"), ".xlsx", sep = "")
- 
   #download the dataset from the website to a local temporary file
   GET(url, authenticate(":", ":", type="ntlm"), write_disk(tempfile <- tempfile(fileext = ".xlsx")))
   if (file.info(tempfile)$size < 50000) {
@@ -45,21 +44,25 @@ getexcelfromurl <- function() {
 sumcountry <- function(name) {
   country <- as.character(name)
   print(paste("name: ", name))
-  cdata <- subset(res, res$Countries.and.territories == country)
-  scdata <- cdata[order(cdata$DateRep),]
+  cdata <- subset(res, res$countriesAndTerritories == country)
+  scdata <- cdata[order(cdata$dateRep),]
 
+  date0 <- scdata$dateRep[1]
   sumcases <- 0
   sumdeaths <- 0
-  region <- subset(regres, regres$Countries.and.territories == country)
+  region <- subset(regres, regres$countriesAndTerritories == country)
   regiontext = as.character(region$region)
   for (row in 1:nrow(scdata)) {
-    date <- scdata[row, "DateRep"]
-    cases <- scdata[row, "Cases"]
-    deaths <- scdata[row, "Deaths"]
+    date <- scdata[row, "dateRep"]
+    totdays <- as.integer(date - date0)
+    #print(paste("date: ", date, " days: ", totdays))
+    cases <- scdata[row, "cases"]
+    deaths <- scdata[row, "deaths"]
     #print(paste("date: ", date, " cases: ", cases, " deaths: ", deaths))
     sumcases <- sumcases + cases
     sumdeaths <- sumdeaths + deaths
     scdata[row, "date"] <- as.character(date, format="%Y%m%d")
+    scdata[row, "days"] <- totdays
     scdata[row, "region"] <- regiontext
     scdata[row, "aggcases"] <- sumcases
     scdata[row, "aggdeaths"] <- sumdeaths
@@ -70,8 +73,8 @@ sumcountry <- function(name) {
 
 # Select columns relevant for Gapminder
 trimdata <- function(df) {
-  return(subset(df, select=c('Countries.and.territories', 'date', 'aggcases', 'aggdeaths', 
-                             'Cases', 'Deaths', 'region')))
+  return(subset(df, select=c('countriesAndTerritories', 'date', 'aggcases', 'aggdeaths', 
+                             'cases', 'deaths', 'region')))
 }
 
 
@@ -97,20 +100,20 @@ res <- getexcelfromurl()
 regres <- read.xlsx("region_names.xlsx", 1)
 
 #Get list of countries from data frame
-countries <- unique(res %>% select(Countries.and.territories))
+countries <- unique(res %>% select(countriesAndTerritories))
 
 # uncomment if you want to generate new country list
-#country_file = file.choose(new = TRUE)
-#write.xlsx(countries, country_file, sheetName="countries")
+country_file = "untitled.xlsx"
+write.xlsx(countries, country_file, sheetName="countries")
 
-total <- data.frame(DateRep=integer(), Day=integer(), Month=integer(), Year=integer(),
-                 Cases=integer(), Deaths=integer(), Countries.and.territories=factor(),
-                 GeoId=factor(), date=integer(), aggcases=integer(),
+total <- data.frame(dateRep=integer(), day=integer(), donth=integer(), year=integer(),
+                 cases=integer(), deaths=integer(), countriesAndTerritories=factor(),
+                 geoId=factor(), date=integer(), aggcases=integer(),
                  aggdeaths=integer(), region=character(), stringsAsFactors=FALSE)
 
 # Loop through countries
 for (row in 1:nrow(countries)) {
-  total = rbind(total, sumcountry(countries[row, "Countries.and.territories"]))
+  total = rbind(total, sumcountry(countries[row, "countriesAndTerritories"]))
 }
 
 final <- trimdata(total)
