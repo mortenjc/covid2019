@@ -43,7 +43,7 @@ getexcelfromurl <- function() {
 # by summation on date sorted data 
 sumcountry <- function(name) {
   country <- as.character(name)
-  print(paste("name: ", name))
+  #print(paste("name: ", name))
   cdata <- subset(res, res$countriesAndTerritories == country)
   scdata <- cdata[order(cdata$dateRep),]
 
@@ -51,6 +51,10 @@ sumcountry <- function(name) {
   sumcases <- 0
   sumdeaths <- 0
   region <- subset(regres, regres$countriesAndTerritories == country)
+  if (nrow(region) == 0) {
+    region <- subset(regres, regres$countriesAndTerritories == "UNNAMED")
+    print(paste("country:", country, " is not in region DB"))
+  }
   regiontext = as.character(region$region)
   for (row in 1:nrow(scdata)) {
     date <- scdata[row, "dateRep"]
