@@ -12,6 +12,7 @@ getexcelfromfile <- function() {
   res <- read.xlsx(file, 1)
   # add new columns
   res$date <- 0
+  res$dayssince100 <- 0
   res$aggcases <- 0
   res$aggdeaths <- 0
   res$region <- "na"
@@ -32,6 +33,7 @@ getexcelfromurl <- function() {
   res <- read.xlsx(tempfile, 1)
   # add new columns
   res$date <- 0
+  res$dayssince100 <- 0
   res$aggcases <- 0
   res$aggdeaths <- 0
   res$region <- "na"
@@ -42,6 +44,7 @@ getexcelfromurl <- function() {
 # add the aggregated cases and deaths for a single country
 # by summation on date sorted data 
 sumcountry <- function(name) {
+  init <- FALSE
   country <- as.character(name)
   #print(paste("name: ", name))
   cdata <- subset(res, res$countriesAndTerritories == country)
@@ -50,6 +53,7 @@ sumcountry <- function(name) {
   date0 <- scdata$dateRep[1]
   sumcases <- 0
   sumdeaths <- 0
+  days100 <- 0
   region <- subset(regres, regres$countriesAndTerritories == country)
   if (nrow(region) == 0) {
     region <- subset(regres, regres$countriesAndTerritories == "UNNAMED")
@@ -64,20 +68,32 @@ sumcountry <- function(name) {
     deaths <- scdata[row, "deaths"]
     #print(paste("date: ", date, " cases: ", cases, " deaths: ", deaths))
     sumcases <- sumcases + cases
-    sumdeaths <- sumdeaths + deaths
-    scdata[row, "date"] <- as.character(date, format="%Y%m%d")
-    scdata[row, "days"] <- totdays
-    scdata[row, "region"] <- regiontext
-    scdata[row, "aggcases"] <- sumcases
-    scdata[row, "aggdeaths"] <- sumdeaths
+    if (isFALSE(init) && as.numeric(sumcases) >= 100) {
+      init <- TRUE
+      d100 <- date
+      #print(paste("100 reached on ", date))
+    }
+    if (isTRUE(init)) {
+      scdata[row, "dayssince100"] <- as.integer(date - d100)
+      sumdeaths <- sumdeaths + deaths
+      scdata[row, "date"] <- as.character(date, format="%Y%m%d")
+      scdata[row, "days"] <- totdays
+      scdata[row, "region"] <- regiontext
+      scdata[row, "aggcases"] <- sumcases
+      scdata[row, "aggdeaths"] <- sumdeaths
+    }
   } # end loop dates
-  return (scdata)
+  if (isTRUE(init)) {
+    return (scdata)
+  } else {
+    return (FALSE)
+  }
 }
 
 
 # Select columns relevant for Gapminder
 trimdata <- function(df) {
-  return(subset(df, select=c('countriesAndTerritories', 'date', 'aggcases', 'aggdeaths', 
+  return(subset(df, select=c('countriesAndTerritories', 'date', 'dayssince100', 'aggcases', 'aggdeaths',
                              'cases', 'deaths', 'region')))
 }
 
@@ -110,17 +126,20 @@ countries <- unique(res %>% select(countriesAndTerritories))
 country_file = "untitled.xlsx"
 write.xlsx(countries, country_file, sheetName="countries")
 
-total <- data.frame(dateRep=integer(), day=integer(), donth=integer(), year=integer(),
+total <- data.frame(dateRep=integer(), day=integer(), month=integer(), year=integer(),
                  cases=integer(), deaths=integer(), countriesAndTerritories=factor(),
                  geoId=factor(), date=integer(), aggcases=integer(),
-                 aggdeaths=integer(), region=character(), stringsAsFactors=FALSE)
+                 aggdeaths=integer(), dayssince100=integer(), region=character(), stringsAsFactors=FALSE)
 
 # Loop through countries
 for (row in 1:nrow(countries)) {
-  total = rbind(total, sumcountry(countries[row, "countriesAndTerritories"]))
+  result <- sumcountry(countries[row, "countriesAndTerritories"])
+  if (isFALSE(result) == FALSE) {
+    total = rbind(total, result)
+  }
 }
 
-final <- trimdata(total)
+final <- trimdata(subset(total, total$aggcases >= 100))
 
 # write data to exel, for gapminder
 write.xlsx(final, "gapminder.xlsx", sheetName="countries", row.names=FALSE)
