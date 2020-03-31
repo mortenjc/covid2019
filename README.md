@@ -16,3 +16,8 @@ Importing the excel file into the Gapminder offline tools will create plots
 like the one shown below.
 
 ![Gapminder](images/covid19_gapminder.png)
+
+The script uses the **ggplot2** package to produce comparison plots for
+selected countries.
+
+![Gapminder](images/covid19_countries.png)
