@@ -15,5 +15,4 @@ bu the R script. If a country is missing the region will be set to 'na'.
 Importing the excel file into the Gapminder offline tools will create plots
 like the one shown below.
 
-![Gapminder]
-(https://github.com/mortenjc/covid2019/blob/master/images/covid19_gapminder.png)
+![Gapminder](images/covid19_gapminder.png)
