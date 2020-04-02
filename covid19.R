@@ -8,7 +8,6 @@ if (!require("pacman")) install.packages("pacman")
 pacman::p_load(pacman, rJava, xlsx, httr, dplyr, ggplot2, cowplot, scales, REAT)
 
 source("ecdc_funcs.R") # functions to handle the ECDC dataset
-source("plot_funcs.R") # plotting functions (ggplot2 + cowplot)
 
 ####### The fun starts below #######
 # Get data to work with
@@ -20,13 +19,17 @@ countries <- unique(ecdcdata %>% select(countriesAndTerritories))
 write.xlsx(countries, "country_list.xlsx", sheetName="countries")
 
 # gapminder compatible data frame
-final <- gapminder(ecdcdata, countries, regions, 100)
+MinCases <- 100
+gapm <- gapminder(ecdcdata, countries, regions, MinCases)
 
 # write data to exel, for gapminder
-write.xlsx(final, "gapminder.xlsx", sheetName="countries", row.names=FALSE)
+write.xlsx(gapm, "gapminder.xlsx", sheetName="countries", row.names=FALSE)
 
-multiplot(final, "aggcases", "Total Cases", 100, 500000)
-#multiplot(final, "aggdeaths", "Total Deaths", 1, 100000)
-#multiplot(final, "cases", "Cases", 1, 1000)
+source("plot_funcs.R") # plotting functions (ggplot2 + cowplot)
+singleplot(gapm, ReferenceCountries, MinCases, 300000)
+
+multiplot(gapm, "aggcases", "Total Cases", MinCases, 300000)
+#multiplot(gapm, "aggdeaths", "Total Deaths", 1, 100000)
+#multiplot(gapm, "cases", "Cases", 1, 1000)
 
 #cleanup()

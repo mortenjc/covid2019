@@ -45,7 +45,7 @@ getexcelfromurl <- function() {
 
 # Add the aggregated cases and deaths for a single country
 # by summation of date-sorted data (scdata is short for sorted country data)
-sumcountry <- function(scdata, regions, country) {
+sumcountry <- function(scdata, regions, country, mincases) {
   init <- FALSE
   
   date0 <- scdata$dateRep[1]
@@ -64,7 +64,7 @@ sumcountry <- function(scdata, regions, country) {
     cases <- scdata[row, "cases"]
     deaths <- scdata[row, "deaths"]
     sumcases <- sumcases + cases
-    if (isFALSE(init) && as.numeric(sumcases) >= 100) {
+    if (isFALSE(init) && as.numeric(sumcases) >= mincases) {
       init <- TRUE
       d100 <- date
     }
@@ -107,7 +107,7 @@ gapminder <- function(data, countries, regions, MinCases) {
   for (row in 1:nrow(countries)) {
     cname = as.character(countries[row, "countriesAndTerritories"])
     countrydata <- subset(data, countriesAndTerritories == cname)
-    result <- sumcountry(countrydata, regions, cname)
+    result <- sumcountry(countrydata, regions, cname, MinCases)
     if (isFALSE(result) == FALSE) {
       tmpdf = rbind(tmpdf, result)
     }
