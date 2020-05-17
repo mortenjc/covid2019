@@ -4,7 +4,7 @@
 # Read the covid excel sheet from file
 getexcelfromfile <- function() {
   file = file.choose(new = FALSE)
-  res <- read.xlsx(file, 1)
+  res <- read_excel(file)
   # add new columns
   res$date <- 0
   res$dayssince100 <- 0
@@ -32,8 +32,7 @@ getexcelfromurl <- function() {
   }
   
   # read the Dataset sheet into R, add new columns
-  # this is pretty slow is there a faster way??
-  res <- read.xlsx(tempfile, 1)
+  res <- read_excel(tempfile)
   res$date <- 0
   res$dayssince100 <- 0
   res$aggcases <- 0
@@ -51,7 +50,6 @@ sumcountry <- function(scdata, regions, country, mincases) {
   date0 <- scdata$dateRep[1]
   sumcases <- 0
   sumdeaths <- 0
-  days100 <- 0
   region <- subset(regions, regions$countriesAndTerritories == country)
   if (nrow(region) == 0) {
     region <- subset(regions, regions$countriesAndTerritories == "UNNAMED")
@@ -59,10 +57,12 @@ sumcountry <- function(scdata, regions, country, mincases) {
   }
   regiontext = as.character(region$region)
   for (row in 1:nrow(scdata)) {
-    date <- scdata[row, "dateRep"]
+    date <- scdata$dateRep[row]
     totdays <- as.integer(date - date0)
+    #print(paste("country, date, date0, diff", country, date, date0, totdays))
+    stopifnot( totdays >= 0)
+  
     cases <- scdata[row, "cases"]
-    deaths <- scdata[row, "deaths"]
     sumcases <- sumcases + cases
     if (isFALSE(init) && as.numeric(sumcases) >= mincases) {
       init <- TRUE
@@ -70,6 +70,7 @@ sumcountry <- function(scdata, regions, country, mincases) {
     }
     if (isTRUE(init)) {
       scdata[row, "dayssince100"] <- as.integer(date - d100)
+      deaths <- scdata[row, "deaths"]
       sumdeaths <- sumdeaths + deaths
       scdata[row, "date"] <- as.character(date, format="%Y%m%d")
       scdata[row, "days"] <- totdays
@@ -107,6 +108,9 @@ gapminder <- function(data, countries, regions, MinCases) {
   for (row in 1:nrow(countries)) {
     cname = as.character(countries[row, "countriesAndTerritories"])
     countrydata <- subset(data, countriesAndTerritories == cname)
+    if (row %% 20 == 0) {
+      print(paste("row ", row, " : ", cname))
+    }
     result <- sumcountry(countrydata, regions, cname, MinCases)
     if (isFALSE(result) == FALSE) {
       tmpdf = rbind(tmpdf, result)
