@@ -29,9 +29,9 @@ gapm <- gapminder(ecdcdata, countries, regions, MinCases)
 write.xlsx(as.data.frame(gapm), "gapminder.xlsx", sheetName="countries", row.names=FALSE)
 
 source("plot_funcs.R") # plotting functions (ggplot2 + cowplot)
-singleplot(gapm, ReferenceCountries, MinCases, 1500000, "jCAPS Corp.")
+singleplot(gapm, ReferenceCountries, MinCases, 1700000, "jCAPS Corp.")
 
-multiplot(gapm, "", MinCases, 1500000)
+multiplot(gapm, "", MinCases, 1700000)
 #multiplot(gapm, "Total Deaths", 1, 100000)
 #multiplot(gapm, "Cases", 1, 1000)
 
