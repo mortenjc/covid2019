@@ -18,7 +18,7 @@ getexcelfromfile <- function() {
 getexcelfromurl <- function() {
   # create the URL where the dataset is stored with automatic updates every day
   datestr <- format(Sys.time(), "%Y-%m-%d") # or 
-  datestr <- "2020-05-26"
+  #datestr <- "2020-06-05"
   
   url <- paste("https://www.ecdc.europa.eu/sites/default/files/documents/", 
                "COVID-19-geographic-disbtribution-worldwide-",
